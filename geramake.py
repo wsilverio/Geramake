@@ -2,10 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 import sys, os, errno
+from unicodedata import normalize
 
 print "\n### GERAMAKE ###\n"
 
 printFun = False
+
+def rmBkspace(txt):
+    return txt.replace(' ', '_')
 
 def openDir(dir):
     if printFun: print "openDir()", dir
@@ -97,7 +101,7 @@ def createCMakeLists(project):
             "project(%s)\n"
             "file( GLOB SRCS *.cpp )\n"
             "file( GLOB HEADERS *.h )\n"
-            "set( CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} `pkg-config --cflags --libs opencv`\" )\n"
+            "set( CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -std=c++11\" )\n"
             "find_package( OpenCV REQUIRED )\n"
             "add_executable( ${CMAKE_PROJECT_NAME} ${SRCS} ${HEADERS} )\n"
             "target_link_libraries( ${CMAKE_PROJECT_NAME} ${OpenCV_LIBS} )\n"
@@ -124,27 +128,90 @@ def run(file):
         print file, "não encontrado"
 
 def main():
-    diretorio = sys.argv[1]
 
-    # abre o diretório do projeto
-    openDir(diretorio)
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print "Parâmetros inválidos."
+        print "Tente $ python geramake.py \"diretorio\""
+        print "Ou    $ python geramake.py \"diretorio\" \"nome do projeto\"\n"
+        exit()
 
-    # abre o arquivo CMakeLists.txt
-    project = getProjName()
+    else:
 
-    # make, run
-    if len(sys.argv) == 2:
+        diretorio = sys.argv[1]
 
-        # se o CMakeLists existir
-        if project != 1:
+        # abre o diretório do projeto
+        openDir(diretorio)
 
-            # verifica se o diretório 'build'
+        # abre o arquivo CMakeLists.txt
+        project = getProjName()
+
+        # make, run
+        if len(sys.argv) == 2:
+
+            # se o CMakeLists existir
+            if project != 1:
+
+                # verifica se o diretório 'build'
+                if openDir("build") == 0:
+                    cmake("../")
+                    make()
+                    linkFile(project, "../")
+                    openDir("../")
+                    run(project)
+                else:
+                    # build não encontrado
+                    # cria o diretório build
+                    mkDir("build")
+                    openDir("build")
+                    cmake("../")
+                    make()
+                    linkFile(project, "../")
+                    openDir(diretorio)
+                    run(project)
+
+
+        # cmake, make, run
+        elif len(sys.argv) == 3:
+
+            # CMakeLists.txt encontrado
+            if project != 1:
+                key = raw_input("Deseja substituir (s/n)?: ").upper()
+                if key == 'N':
+                    pass
+                elif key == 'S':
+
+                    try:
+                        os.remove("CMakeLists.txt")
+                    except OSError as e:
+                        if e.errno == errno.ENOENT:
+                            pass
+                        else:
+                            print e
+                            exit()
+
+                    project = rmBkspace(sys.argv[2])
+
+                    # cria CMakeLists.txt
+                    createCMakeLists(project)
+
+                else:
+                    print "Nada a ser feito."
+                    exit()
+
+            else:
+                project = rmBkspace(sys.argv[2])
+                # cria CMakeLists.txt
+                createCMakeLists(project)
+
+            if raw_input("Deseja compliar e executar o programa? (s/n): ").upper() != 'S':
+                exit()
+
             if openDir("build") == 0:
                 cmake("../")
                 make()
                 linkFile(project, "../")
                 openDir("../")
-                run(project)
+                run(project + ".run")
             else:
                 # build não encontrado
                 # cria o diretório build
@@ -153,70 +220,9 @@ def main():
                 cmake("../")
                 make()
                 linkFile(project, "../")
-                openDir(diretorio)
-                run(project)
+                openDir("../")
+                run(project + ".run")
 
-
-    # cmake, make, run
-    elif len(sys.argv) == 3:
-
-        # CMakeLists.txt encontrado
-        if project != 1:
-            key = raw_input("Deseja substituir (s/n)?: ").upper()
-            if key == 'N':
-                pass
-            elif key == 'S':
-
-                try:
-                    os.remove("CMakeLists.txt")
-                except OSError as e:
-                    if e.errno == errno.ENOENT:
-                        pass
-                    else:
-                        print e
-                        exit()
-
-                project = sys.argv[2]
-
-                # cria CMakeLists.txt
-                createCMakeLists(project)
-
-            else:
-                print "Nada a ser feito."
-                exit()
-
-        else:
-            project = sys.argv[2]
-            # cria CMakeLists.txt
-            createCMakeLists(project)
-
-        key = raw_input("Deseja compliar e executar o programa? (s/n): ").upper()
-
-        if key != 'S':
-            exit()
-
-        if openDir("build") == 0:
-            cmake("../")
-            make()
-            linkFile(project, "../")
-            openDir("../")
-            run(project + ".run")
-        else:
-            # build não encontrado
-            # cria o diretório build
-            mkDir("build")
-            openDir("build")
-            cmake("../")
-            make()
-            linkFile(project, "../")
-            openDir("../")
-            run(project + ".run")
-
-    else:
-        print "Parâmetros inválidos."
-        print "Tente $ python geramake.py \"diretorio\""
-        print "Ou    $ python geramake.py \"diretorio\" \"nome do projeto\"\n"
-        exit()
 
 if __name__ == "__main__":
     main()
