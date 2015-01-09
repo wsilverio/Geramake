@@ -123,9 +123,13 @@ def run(file):
     if printFun: print "run()"
     print "\nExecutando arquivo ./%s" %file
 
-    teste = os.system("./" + file)
+    teste = os.system("./" + file )
     if teste != 0:
-        print file, "não encontrado"
+        print '[',file, "] não encontrado"
+
+        if file[-4:] != ".run":
+            run(file + ".run")
+
 
 def main():
 
