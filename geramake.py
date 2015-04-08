@@ -124,6 +124,7 @@ def run(file):
     print "\nExecutando arquivo ./%s" %file
 
     teste = os.system("./" + file)
+
     if teste != 0:
         print '[',file, "] não encontrado"
 
@@ -170,7 +171,7 @@ def main():
                     cmake("../")
                     make()
                     linkFile(project, "../")
-                    openDir(diretorio)
+                    openDir("../")
                     run(project)
 
 
